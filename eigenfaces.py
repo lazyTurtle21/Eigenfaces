@@ -1,5 +1,6 @@
 import os
 import numpy as np
+
 from image import Image
 
 
@@ -18,6 +19,7 @@ class Eigenfaces:
         images = np.array(images)
         print("Images loaded", images.shape[0])
 
+        self.threshold = 0.9
         self.average = self.get_average(images)
         self.images = self.normalize_all(images)
         self.vectors = None
@@ -41,17 +43,26 @@ class Eigenfaces:
 
         # covariance matrix of images
         covariance = np.matmul(images, np.matrix.transpose(images))
-        print(covariance.shape)
 
         # find eigenvectors for image basis
         # (image_size x num_vectors)
         values, vectors = np.linalg.eig(covariance)
         vectors = np.matmul(np.transpose(images), vectors)
 
-        # get k most important images
-        k = 33
-        indexes = np.flip(np.argsort(values, 0), 0)[0:k]
-        vectors = vectors[:, indexes]
+        # get k - number of principal components
+        indexes = np.flip(np.argsort(values), 0)
+        values = values[indexes]
+        variance = np.sum(values)
+        length = values.size
+        threshold_var = 0
+        k = 0
+
+        # choose k that covers (threshold * 100%) percent of the variance
+        while threshold_var / variance < self.threshold and k < length:
+            threshold_var += values[k]
+            k += 1
+
+        vectors = vectors[:, indexes[0:k]]
 
         # make the basis orthonormal
         self.vectors = self.make_orthogonal(vectors)
