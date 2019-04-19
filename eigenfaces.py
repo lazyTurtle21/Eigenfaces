@@ -5,7 +5,7 @@ from image import Image
 
 
 class Eigenfaces:
-    def __init__(self, directory):
+    def __init__(self, directory, threshold=0.8):
         images = []
 
         # load all the images
@@ -19,7 +19,7 @@ class Eigenfaces:
         images = np.array(images)
         print("Images loaded", images.shape[0])
 
-        self.threshold = 0.9
+        self.threshold = threshold
         self.average = self.get_average(images)
         self.images = self.normalize_all(images)
         self.vectors = None
@@ -49,7 +49,7 @@ class Eigenfaces:
         values, vectors = np.linalg.eig(covariance)
         vectors = np.matmul(np.transpose(images), vectors)
 
-        # get k - number of principal components
+        # get number of principal components
         indexes = np.flip(np.argsort(values), 0)
         values = values[indexes]
         variance = np.sum(values)
@@ -62,6 +62,7 @@ class Eigenfaces:
             threshold_var += values[k]
             k += 1
 
+        print("K is", k)
         vectors = vectors[:, indexes[0:k]]
 
         # make the basis orthonormal
