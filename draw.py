@@ -4,14 +4,15 @@ import matplotlib.pyplot as plt
 
 if __name__ == '__main__':
     ks = []
-    thes = []
+    thetas = []
+
     for i in range(5, 100, 5):
-        thes.append(i/100)
+        thetas.append(i/100)
         eig = Eigenfaces("./orl_faces", i/100)
         ks.append(eig.k)
 
     plt.figure()
-    plt.plot(thes, ks, '-m')
+    plt.plot(thetas, ks, '-m')
     plt.xlabel("threshold")
     plt.ylabel("value of k")
     plt.suptitle('Dependency between the number of principal '

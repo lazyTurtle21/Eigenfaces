@@ -13,8 +13,12 @@ if __name__ == "__main__":
     Image.show_image(eigen.reverse_image(weights1))
 
     # creating a class-container for known individuals
-    database = Dataset("./orl_faces", eigen)
+    database = Dataset("./orl_faces")
 
     # recognizing procedure
-    name = database.recognize(Image.read_image("./orl_faces/s14/4.pgm"))
+    name = database.recognize(Image.read_image("./orl_faces/s12/3.pgm"))
+    print(name)
+    name = database.recognize(Image.read_image("./orl_faces/s35/6.pgm"))
+    print(name)
+    name = database.recognize(Image.read_image("./orl_faces/s24/3.pgm"))
     print(name)

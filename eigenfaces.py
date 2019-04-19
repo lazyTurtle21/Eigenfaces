@@ -23,6 +23,7 @@ class Eigenfaces:
         self.average = self.get_average(images)
         self.images = self.normalize_all(images)
         self.vectors = None
+        self.k = None
         self.vectorsT = None
 
         self.create_reduced_basis()
@@ -63,7 +64,8 @@ class Eigenfaces:
             k += 1
 
         print("K is", k)
-        vectors = vectors[:, indexes[0:k]]
+        self.k = k
+        vectors = vectors[:, indexes[0:self.k]]
 
         # make the basis orthonormal
         self.vectors = self.make_orthogonal(vectors)

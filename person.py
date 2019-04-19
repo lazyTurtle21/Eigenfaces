@@ -5,23 +5,21 @@ from image import Image
 
 
 class Person:
-    def __init__(self, path, eigenfaces):
+    def __init__(self, path):
         self.name = path.split("/")[-1]
+        self.path = path
         self.number_pic = 0
         self.class_vector = None
-        self.eigenfaces = eigenfaces
 
-        # calculating representing class vector
-        self.initialize(path)
-
-    def initialize(self, path):
+    def initialize(self, eigenfaces):
         weights = []
 
         # calculating weights for all images of given person
-        if os.path.isdir(path):
-            for image in os.listdir(path):
-                image = Image.read_image(path + "/" + image) - self.eigenfaces.average
-                weights.append(self.eigenfaces.calculate_weight(image))
+        if os.path.isdir(self.path):
+            for image in os.listdir(self.path):
+                image = Image.read_image(self.path + "/" + image) \
+                        - eigenfaces.average
+                weights.append(eigenfaces.calculate_weight(image))
         weights = np.array(weights)
 
         # take the average over weights
