@@ -1,5 +1,6 @@
 import os
 import numpy as np
+from scipy.stats import norm
 
 from image import Image
 
@@ -8,23 +9,21 @@ class Person:
     def __init__(self, path):
         self.name = path.split("/")[-1]
         self.path = path
-        self.number_pic = 0
-        self.class_vector = None
+        self.images = None
+        self.weights = None
+        self.class_weight = None
 
-    def initialize(self, eigenfaces):
-        weights = []
+        self.initialize(path)
 
-        # calculating weights for all images of given person
+    def initialize(self, path):
+        images = []
+
         if os.path.isdir(self.path):
             for image in os.listdir(self.path):
-                image = Image.read_image(self.path + "/" + image) \
-                        - eigenfaces.average
-                weights.append(eigenfaces.calculate_weight(image))
-        weights = np.array(weights)
+                images.append(Image.read_image(self.path + "/" + image))
 
-        # take the average over weights
-        self.class_vector = np.mean(weights, axis=0)
-        self.number_pic = weights.shape[0]
+        self.images = np.array(images)
 
-    def distance(self, person2):
-        return np.linalg.norm(self.class_vector - person2)
+    def distance(self, other_weight):
+        return np.linalg.norm(self.class_weight - other_weight)
+

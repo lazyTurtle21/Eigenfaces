@@ -1,39 +1,84 @@
 import os
+import numpy as np
+from scipy.stats import norm as stats_norm
 
 from person import Person
-from eigenfaces import Eigenfaces
 
-
-#   TO DO: refactor
 
 class Dataset:
     def __init__(self, directory):
-        self.persons = []
-        self.eigenfaces = Eigenfaces(directory)
+        self.persons = None
+        self.all_images = None
         self.initialize(directory)
 
+        self.average_dist = None
+        self.standard_deviation = None
+
     def initialize(self, directory):
+        persons = []
+        all_images = []
+
         for person_directory in os.listdir(directory):
             person_directory_path = directory + "/" + person_directory
             if os.path.isdir(person_directory_path):
                 person = Person(person_directory_path)
-                self.persons.append(person)
-                person.initialize(self.eigenfaces)
+                persons.append(person)
+                all_images.extend(person.images)
 
-    def recognize(self, image):
-        # threshold to be estimated
-        threshold = 10
+        self.persons = np.array(persons)
+        self.all_images = np.array(all_images)
 
-        image = image - self.eigenfaces.average
-        unknown = self.eigenfaces.calculate_weight(image)
+        print("Images loaded", self.all_images.shape[0])
 
-        # finding the closest person in dataset
-        d, person = min(list(zip(map(lambda x: x.distance(unknown),
-                                     self.persons), self.persons)))
-        if d < threshold:
-            return "Person's name: " + person.name
-        else:
-            return "No such person"
+    def calculate_weights(self, weight_func):
+        for person in self.persons:
+            person.weights = np.apply_along_axis(weight_func, 1, person.images)
+            person.class_weight = np.apply_along_axis(np.mean, 0, person.weights)
+
+    def __recognize_with_probabilities__(self, probabilities):
+        # probabilities are probabilities for each person in the order of self.persons
+
+        indexes = np.flip(np.argsort(probabilities))
+
+        # filter the largest probabilites
+        indexes = [*filter(lambda i: 4 * probabilities[i] > probabilities[indexes[0]], indexes)]
+
+        # return (name: probability) pairs to user
+        return [*map(lambda i: (self.persons[i].name, probabilities[i]), indexes)]
+
+    def initialize_norm(self):
+        distances = []
+
+        for person in self.persons:
+            person_distances = np.apply_along_axis(np.linalg.norm, 1, person.class_weight - person.weights)
+            distances.extend(person_distances)
+
+        distances = np.array(distances)
+        self.average_dist = np.average(distances)
+        self.standard_deviation = np.std(distances)
+
+    def recognize_norm(self, weight):
+        # recognize using normal distribution
+        if not self.average_dist:
+            self.initialize_norm()
+
+        distances = np.array([*map(lambda x: x.distance(weight), self.persons)])
+
+        # create the normal distribution and get the probabilities
+        normal = stats_norm(self.average_dist, self.standard_deviation)
+        probabilities = np.vectorize(lambda x: 1 - normal.cdf(x))(distances)
+
+        return self.__recognize_with_probabilities__(probabilities)
+
+    def recognize_dist(self, weight):
+        # recognize by the distances fraction
+        distances_inv = np.array([*map(lambda x: 1 / x.distance(weight), self.persons)])
+        distance_isum = np.sum(distances_inv)
+
+        probabilities = distances_inv / distance_isum
+
+        return self.__recognize_with_probabilities__(probabilities)
+
 
     def __iter__(self):
         for person in self.persons:
