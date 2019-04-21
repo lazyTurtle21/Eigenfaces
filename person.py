@@ -13,9 +13,9 @@ class Person:
         self.weights = None
         self.class_weight = None
 
-        self.initialize(path)
+        self.initialize()
 
-    def initialize(self, path):
+    def initialize(self):
         images = []
 
         if os.path.isdir(self.path):
