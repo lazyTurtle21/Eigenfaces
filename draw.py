@@ -1,5 +1,5 @@
 <<<<<<< HEAD
-from eigenfaces import Eigenfaces
+from processing import Eigenfaces
 import matplotlib.pyplot as plt
 
 
@@ -19,7 +19,7 @@ if __name__ == '__main__':
                  'components and threshold')
     plt.savefig('graph.jpg')
 =======
-from eigenfaces import Eigenfaces
+from processing import Eigenfaces
 import matplotlib.pyplot as plt
 
 

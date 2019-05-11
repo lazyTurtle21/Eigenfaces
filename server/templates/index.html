@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title> Eigenfaces </title>
+
+    <link href="https://fonts.googleapis.com/css?family=Lobster|Open+Sans:300,400,800" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+
+            width: 100vw;
+            min-height: 100vh;
+            margin: 0;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+
+            /*background-color: #c2bdb8;*/
+        }
+
+        .container {
+            display: flex;
+            flex-direction: column;
+
+            position: relative;
+        }
+        .title {
+            height: 60px;
+            line-height: 60px;
+            margin: 0;
+            padding: 0 20px;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #AFD275;
+            color: #FFF;
+            font-weight: 300;
+
+            display: flex;
+            justify-content: center;
+
+            font-size: 34px;
+
+            border-radius: 20px 20px 0 0;
+        }
+        .bottom {
+            height: 60px;
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            box-sizing: border-box;
+            background-color: #AFD275;
+
+            border-radius: 0 0 20px 20px;
+
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .detect-button {
+            color: #7E685A;
+            background-color: white; /*#7E685A;*/
+
+            outline: none;
+            height: 40px;
+            font-weight: 800;
+            font-size: 22px;
+            padding: 0 20px;
+
+            border-radius: 20px;
+            border: none;
+
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .detect-button:hover {
+            color: #E77179;
+        }
+        .detect-button:active {
+            background-color: #e6a1a6;
+        }
+
+        .result {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+
+            position: absolute;
+            width: 100%;
+            height: 100%;
+
+            background-color: #FFFFFF44;
+        }
+        .result-title {
+            margin: 0;
+
+            width: 240px;
+
+            background-color: #E77179;
+            color: #FFFFFF;
+            border-radius: 20px 20px 0 0;
+            height: 36px;
+            font-size: 24px;
+            font-weight: 400;
+
+            display: flex;
+            justify-content: center;
+        }
+        .result-main {
+            display: flex;
+            flex-direction: column;
+
+            width: 240px;
+            min-height: 36px;
+
+            padding: 10px;
+            box-sizing: border-box;
+
+            background-color: #FFFFFF;
+            color: #514238;
+            border-radius: 0 0 20px 20px;
+        }
+        .result-main > p {
+            margin: 0;
+        }
+        .result-name {
+            color: #9f9f9f;
+            font-family: 'Lobster', cursive;
+            font-size: 24px;
+        }
+        .result-button {
+            color: white;
+            background-color: #E77179;
+
+            outline: none;
+            height: 30px;
+            font-weight: 800;
+            font-size: 18px;
+            padding: 0 20px;
+
+            border-radius: 15px;
+            border: none;
+
+            cursor: pointer;
+            transition: 0.3s;
+
+            margin: 10px 0 0;
+            align-self: center;
+        }
+        .result-button:hover {
+            background-color: #e6a1a6;
+        }
+
+        .invisible {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="title"> Eigenfaces </h1>
+        <video id="player" autoplay></video>
+        <div class="bottom">
+            <button class="detect-button"> Detect </button>
+        </div>
+        <div class="result">
+            <h2 class="result-title"> Result </h2>
+            <div class="result-main">
+            </div>
+        </div>
+    </div>
+    <div class="invisible">
+        <canvas id="canvas"></canvas>
+    </div>
+<script>
+    const player = document.getElementById('player');
+    const button = document.getElementsByClassName("detect-button")[0];
+    const constraints = {video: true };
+    const resultContent = document.getElementsByClassName("result-main")[0];
+    const result = document.getElementsByClassName("result")[0];
+
+    const canvas = document.getElementById("canvas");
+    const ctx = canvas.getContext("2d");
+
+    navigator.mediaDevices.getUserMedia(constraints)
+        .then((stream) => {
+            player.srcObject = stream;
+        });
+
+    button.addEventListener("click", (e) => {
+        canvas.width = player.clientWidth;
+        canvas.height = player.clientHeight;
+
+
+        ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
+
+        let image = canvas.toDataURL();
+
+        fetch("/eigenfaces/detect", {"method": "POST", "body": image})
+            .then((res) => res.json())
+            .then((res) => {
+                let prob = res.probabilities;
+                prob = prob.filter((x, i) => i < 6);
+
+                let text = prob.map(([name, probability]) => {
+                    probabiltiy = Math.round(probability * 100);
+                    return `<p> <span class="result-name">${name}</span>: <b>${probability}%</b> </p>`
+                }).join("\n");
+
+                resultContent.innerHTML =
+                    "<p> You are: </p>" + text + `<button class="result-button"> OK </button>`;
+
+                result.style.display = "flex";
+                const resultButton = document.getElementsByClassName("result-button")[0];
+                resultButton.addEventListener("click", () => { result.style.display = "none" })
+            });
+    });
+
+</script>
+</body>
+</html>
