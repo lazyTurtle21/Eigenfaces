@@ -21,22 +21,27 @@ def recognize_image():
 
     # omit "data:image/png;base64,"
     id = int(timestamp() * 1e6)
-    filename = "./images/{}.{}".format(id, "png")
+    filename = "./images/{}.{}".format(id, "jpg")
 
     # also String IO can be used to load image
     with open(filename, "wb") as file:
         file.write(base64.decodebytes(image + b'=' * (-len(image) % 4)))
 
-    name = detect_face(filename)
-    return jsonify({"probabilities": name}), 200
+    probs = detect_face(filename)
+    return jsonify({"probabilities": probs}), 200
 
 
 def detect_face(filename):
     """ Function takes file path and returns name """
     image = Image.find_face(filename)
+    if image is None:
+        return []
+
+    Image.save_image(image, filename)
+
+    image = Image.read_image(filename)
     Image.show_image(image)
-    image = image.flatten()
-    probs = eigen.recognize(image, "dist")
+    probs = eigen.recognize(image, "norm")
 
     return probs
 

@@ -6,6 +6,7 @@ from scipy import ndimage as ndi
 import cv2
 import os
 
+
 class Image:
     # dict with key - flattened shape, value - original image shape
     shapes = {}
@@ -13,12 +14,11 @@ class Image:
     @classmethod
     def find_face(cls, filename):
         SCALE = 1.2
-        SIZE = 200
+        SIZE = 100
 
         image = cv2.imread(filename)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-        # TODO fix error - path should be relative to main
         current_path = os.path.dirname(os.path.abspath(__file__))
         cascade_name = current_path + "/haarcascade_frontalface_default.xml"
         face_cascade = cv2.CascadeClassifier(cascade_name)
@@ -131,7 +131,14 @@ class Image:
             raise Exception("Invalid image dimensions: " + str(image.shape))
 
         image = image / max(image.flatten())
+
+        # image = cv2.imread(path)
+        # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        # np.multiply(image, 255 / max(image.flatten()),
+        #             out=image, casting="unsafe")
+
         return image
+
 
     @classmethod
     def save_image(cls, image, path):
