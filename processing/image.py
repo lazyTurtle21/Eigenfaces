@@ -11,10 +11,63 @@ class Image:
     # dict with key - flattened shape, value - original image shape
     shapes = {}
 
+    @staticmethod
+    def inside_oval(x, y, size):
+        s = size
+        return ((x - s / 2) * 1.5) ** 2 + (y - s / 2) ** 2 < (s / 2) ** 2
+
+    @classmethod
+    def gamma_correct(cls, image, gamma=5):
+        # build a lookup table mapping the pixel values [0, 255] to
+        # their adjusted gamma values
+        inv_gamma = 1.0 / gamma
+        table = np.array([((i / 255.0) ** inv_gamma) * 255
+                          for i in np.arange(0, 256)]).astype("uint8")
+
+        # apply gamma correction using the lookup table
+        image = cv2.LUT(image, table)
+        return image
+
+    @classmethod
+    def dog_correction(cls, image, var1=2, var2=1):
+        blur1 = cv2.GaussianBlur(image, (5, 5), var1).astype("float")
+        blur2 = cv2.GaussianBlur(image, (5, 5), var2).astype("float")
+
+        return blur1 - blur2
+
+    @classmethod
+    def histogram_equalization(cls, image):
+        L = 256
+        pdf = [0 for i in range(L)]
+
+        for x, y in np.ndindex(image.shape):
+            if Image.inside_oval(x, y, image.shape[0]):
+                pdf[image[y, x]] += 1
+
+        pdf = [*map(lambda x: x / (image.shape[0] * image.shape[1]), pdf)]
+
+        cdf = [0 for i in range(L)]
+        cdf[0] = pdf[0]
+        for i in range(1, L):
+            cdf[i] = cdf[i - 1] + pdf[i]
+
+        table = np.floor(np.array(cdf) * L).astype("uint8")
+        image = cv2.LUT(image, table)
+        return image
+
+    @classmethod
+    def cut_oval(cls, image):
+        size = image.shape[1]
+
+        for x, y in np.ndindex(image.shape):
+            image[y, x] = image[y, x] if Image.inside_oval(x, y, size) else 0
+
+        return image
+
     @classmethod
     def find_face(cls, filename):
-        SCALE = 1.2
-        SIZE = 100
+        SCALE = 0.9
+        SIZE = 200
 
         image = cv2.imread(filename)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -25,15 +78,11 @@ class Image:
 
         faces = face_cascade.detectMultiScale(
             image,
-            scaleFactor=1.2,
+            scaleFactor=1.3,
             minNeighbors=5,
             minSize=(30, 30),
             flags=cv2.CASCADE_SCALE_IMAGE
         )
-
-        # for (x, y, w, h) in faces:
-        #     cv2.rectangle(image, (x, y), (x + w, y + h), 0, 2)
-        # Image.show_image(image)
 
         if len(faces) == 0:
             return None
@@ -49,12 +98,15 @@ class Image:
         image = cv2.resize(image, dsize=(SIZE, SIZE),
                            interpolation=cv2.INTER_CUBIC)
 
-        def inside_oval(x, y):
-            s = SIZE
-            return ((x - s / 2) * 1.5) ** 2 + (y - s / 2) ** 2 < (s / 2) ** 2
+        image = Image.histogram_equalization(image)
+        # image = Image.gamma_correct(image)
+        # image = Image.dog_correction(image)
+        image = Image.cut_oval(image)
 
-        for x, y in np.ndindex(image.shape):
-            image[y, x] = image[y, x] if inside_oval(x, y) else 0
+        image = image.astype("float")
+        image /= max(image.flatten())
+
+        # Image.show_image(image)
 
         return image
 
@@ -67,14 +119,14 @@ class Image:
             return ((x - s / 2) * 1.5) ** 2 + (y - s / 2) ** 2 < (s / 2) ** 2
 
         edges = filters.sobel(image)
-        edges = filters.gaussian(edges, sigma=1.8)
+        edges = filters.gaussian(edges, sigma=1.5)
         np.multiply(edges, 255 / max(edges.flatten()), out=edges, casting="unsafe")
 
         plt.imshow(edges)
         plt.show()
 
-        light_spots = np.array((image > 240).nonzero()).T
-        dark_spots = np.array((image < 20).nonzero()).T
+        light_spots = np.array((image > 250).nonzero()).T
+        dark_spots = np.array((image < 5).nonzero()).T
 
         plt.plot(dark_spots[:, 1], dark_spots[:, 0], 'o')
         plt.imshow(image)
@@ -97,10 +149,10 @@ class Image:
             outside = False
 
             for x, y in np.ndindex(ws.shape):
-                if ws[x, y] == group and inside_oval(x, y):
+                if ws[x, y] == group and not inside_oval(x, y):
                     outside = True
 
-            if outside: continue
+            if not outside: continue
 
             for x, y in np.ndindex(ws.shape):
                 if ws[x, y] == group:
@@ -122,22 +174,27 @@ class Image:
 
     @classmethod
     def read_image_2d(cls, path):
-        image = mpimage.imread(path)
+        # image = mpimage.imread(path)
+        #
+        # if len(image.shape) == 3 and image.shape[2] >= 3:
+        #     r, g, b = image[:, :, 0], image[:, :, 1], image[:, :, 2]
+        #     image = 0.2989 * r + 0.5870 * g + 0.1140 * b
+        # elif len(image.shape) != 2:
+        #     raise Exception("Invalid image dimensions: " + str(image.shape))
+        #
+        # image = image / max(image.flatten())
 
-        if len(image.shape) == 3 and image.shape[2] >= 3:
-            r, g, b = image[:, :, 0], image[:, :, 1], image[:, :, 2]
-            image = 0.2989 * r + 0.5870 * g + 0.1140 * b
-        elif len(image.shape) != 2:
-            raise Exception("Invalid image dimensions: " + str(image.shape))
-
-        image = image / max(image.flatten())
-
-        # image = cv2.imread(path)
-        # image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
-        # np.multiply(image, 255 / max(image.flatten()),
-        #             out=image, casting="unsafe")
+        image = cv2.imread(path)
+        image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
+        image = image.astype("float")
+        image /= max(image.flatten())
 
         return image
+
+    @classmethod
+    def normalize_image(self, image):
+        image = image.astype("float")
+
 
 
     @classmethod

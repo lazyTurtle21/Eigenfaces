@@ -26,6 +26,7 @@ def test_apps():
     test_person(eigen, "Yulianna_Tymchenko/7.jpg")
     test_person(eigen, "Mariia_Kulyk/4.jpg")
     test_person(eigen, "Andriy_Dmytruk/4.jpg")
+    test_person(eigen, "Andriy_Dmytruk_New/1557603255750815.png")
 
 
 def normalize_images():
@@ -34,7 +35,11 @@ def normalize_images():
 
     import os
 
-    for person_directory in os.listdir(dir_from):
+    all_people = [*os.listdir(dir_from)]
+    for i in range(len(all_people)):
+        person_directory = all_people[i]
+        print("[Eigenfaces] Normalizing person %d / %d" % (i + 1, len(all_people)))
+
         path_from = dir_from + "/" + person_directory
         path_to = dir_to + "/" + person_directory
 
@@ -53,9 +58,18 @@ def normalize_images():
                 if image is not None:
                     Image.save_image(image, image_to)
 
-    #end :-)
+    # end :-)
+
+
+def test_detection(file):
+    image = Image.find_face(file)
+    print(image)
+    Image.show_image(image)
 
 
 if __name__ == "__main__":
-    # normalize_images()
+    # test_detection("resized_apps/Andriy_Dmytruk_New/1557603255750815.png")
+    # test_detection("resized_apps/Andriy_Dmytruk/1.jpg")
+
+    normalize_images()
     test_apps()

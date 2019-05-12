@@ -22,6 +22,8 @@ class Person:
             for image in os.listdir(self.path):
                 images.append(Image.read_image(self.path + "/" + image))
 
+        # print([*map(lambda x: x.shape, images)])
+
         self.images = np.array(images)
 
     def distance(self, other_weight):

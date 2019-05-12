@@ -10,6 +10,7 @@ app.url_map.strict_slashes = False
 blueprint = Blueprint("eigenfaces", __name__)
 eigen = Eigenfaces("../normalized_apps")
 
+
 @blueprint.route("/")
 def landing():
     return render_template("index.html")
@@ -37,11 +38,9 @@ def detect_face(filename):
     if image is None:
         return []
 
-    Image.save_image(image, filename)
-
-    image = Image.read_image(filename)
     Image.show_image(image)
-    probs = eigen.recognize(image, "norm")
+    print(image)
+    probs = eigen.recognize(image.flatten(), "norm")
 
     return probs
 

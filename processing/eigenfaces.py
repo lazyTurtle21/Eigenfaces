@@ -46,7 +46,7 @@ class Eigenfaces:
             threshold_var += values[k]
             k += 1
 
-        print("K is", k)
+        print("[Eigenfaces] K is", k)
         self.k = k
         vectors = vectors[:, indexes[0:self.k]]
 
