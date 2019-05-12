@@ -17,7 +17,7 @@ class Image:
         return ((x - s / 2) * 1.5) ** 2 + (y - s / 2) ** 2 < (s / 2) ** 2
 
     @classmethod
-    def gamma_correct(cls, image, gamma=5):
+    def gamma_correct(cls, image, gamma=2.):
         # build a lookup table mapping the pixel values [0, 255] to
         # their adjusted gamma values
         inv_gamma = 1.0 / gamma
@@ -33,7 +33,9 @@ class Image:
         blur1 = cv2.GaussianBlur(image, (5, 5), var1).astype("float")
         blur2 = cv2.GaussianBlur(image, (5, 5), var2).astype("float")
 
-        return blur1 - blur2
+        dog = blur1 - blur2
+        dog = dog - min(dog.flatten()) / (max(dog.flatten()) * 255)
+        return dog.astype("uint8")
 
     @classmethod
     def histogram_equalization(cls, image):
@@ -41,8 +43,7 @@ class Image:
         pdf = [0 for i in range(L)]
 
         for x, y in np.ndindex(image.shape):
-            if Image.inside_oval(x, y, image.shape[0]):
-                pdf[image[y, x]] += 1
+            pdf[image[x, y]] += 1
 
         pdf = [*map(lambda x: x / (image.shape[0] * image.shape[1]), pdf)]
 
@@ -60,14 +61,14 @@ class Image:
         size = image.shape[1]
 
         for x, y in np.ndindex(image.shape):
-            image[y, x] = image[y, x] if Image.inside_oval(x, y, size) else 0
+            image[x, y] = image[x, y] if Image.inside_oval(x, y, size) else 0
 
         return image
 
     @classmethod
     def find_face(cls, filename):
-        SCALE = 0.9
-        SIZE = 200
+        SCALE = (0.63, 0.9)
+        SIZE = (150, 200)
 
         image = cv2.imread(filename)
         image = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
@@ -88,20 +89,27 @@ class Image:
             return None
 
         (x, y, w, h) = faces[0]
-        x = int(x - (SCALE - 1) / 2 * w)
-        y = int(y - (SCALE - 1) / 2 * h)
-        w = int(SCALE * w)
-        h = int(SCALE * h)
+        x = int(x - (SCALE[0] - 1) / 2 * w)
+        y = int(y - (SCALE[1] - 1) / 2 * h)
+        w = int(SCALE[0] * w)
+        h = int(SCALE[1] * h)
 
         image = image[y:y+h, x:x+w]
 
-        image = cv2.resize(image, dsize=(SIZE, SIZE),
+        image = cv2.resize(image, dsize=SIZE,
                            interpolation=cv2.INTER_CUBIC)
 
         image = Image.histogram_equalization(image)
-        # image = Image.gamma_correct(image)
-        # image = Image.dog_correction(image)
-        image = Image.cut_oval(image)
+        image = Image.gamma_correct(image, 2)
+
+        # image = Image.dog_correction(image, 8, 1)
+
+        # g_kernel = cv2.getGaborKernel((5, 8), 2 * np.pi, np.pi / 2, 9.8, 5 ** 2, 0, ktype=cv2.CV_32F)
+        # image = cv2.filter2D(image, cv2.CV_8UC3, g_kernel)
+
+        image = Image.gamma_correct(image, 2)
+
+        # image = Image.cut_oval(image)
 
         image = image.astype("float")
         image /= max(image.flatten())

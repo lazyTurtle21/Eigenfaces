@@ -28,7 +28,7 @@ class Dataset:
         self.persons = np.array(persons)
         self.all_images = np.array(all_images)
 
-        print("[Eigenfaces] Images loaded", self.all_images.shape[0])
+        print("Images loaded", self.all_images.shape[0])
 
     def calculate_weights(self, weight_func):
         for person in self.persons:
