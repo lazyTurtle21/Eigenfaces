@@ -262,6 +262,7 @@
     const constraints = {video: true };
     const resultContent = document.getElementsByClassName("result-main")[0];
     const result = document.getElementsByClassName("result")[0];
+    let resultOpen = false;
 
     const uploadButton = document.getElementsByClassName("upload-button")[0];
     const fileChoose = document.getElementById("file-choose");
@@ -294,7 +295,9 @@
 
             result.style.display = "flex";
             const resultButton = document.getElementsByClassName("result-button")[0];
-            resultButton.addEventListener("click", clearResult)
+            resultButton.addEventListener("click", clearResult);
+
+            resultOpen = true;
     };
 
     const clearResult = () => {
@@ -302,6 +305,8 @@
         ctx.clearRect(0, 0, canvas.width, canvas.height);
         imageContainer.style.display = "none";
         currentFile = null;
+
+        resultOpen = false;
     };
 
     const uploadCamera = () => {
@@ -361,7 +366,10 @@
     button.addEventListener("click", upload);
     document.addEventListener("keypress", (e) => {
         if (e.key === " ") {
-            upload();
+            if (resultOpen)
+                clearResult();
+            else
+                upload();
         }
     });
 
