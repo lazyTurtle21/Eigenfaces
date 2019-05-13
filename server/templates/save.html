@@ -150,6 +150,28 @@
         .detect-button:active {
             background-color: #e6a1a6;
         }
+        #name-input {
+            color: #7E685A;
+            background-color: white; /*#7E685A;*/
+
+            outline: none;
+            height: 40px;
+            font-weight: 400;
+            font-size: 20px;
+            padding: 0 20px;
+
+            border-radius: 20px;
+            border: none;
+            box-sizing: border-box;
+
+            cursor: text;
+            transition: 0.3s;
+
+            margin-right: 10px;
+        }
+        #name-input:focus {
+            border: 2px solid #7E685A;
+        }
 
         .result {
             display: none;
@@ -243,7 +265,8 @@
             </div>
         </div>
         <div class="bottom">
-            <button class="detect-button"> Detect </button>
+            <input type="text" placeholder="Name_Surname" id="name-input">
+            <button class="detect-button"> Save </button>
         </div>
         <div class="result">
             <h2 class="result-title"> Result </h2>
@@ -271,28 +294,10 @@
 
     const rotateButton = document.getElementsByClassName("rotate-button")[0];
 
+    name_input = document.getElementById("name-input");
 
     let currentFile = null;
-
-    const showResult = (res) => {
-        let prob = res.probabilities;
-            prob = prob.filter((x, i) => i < 6);
-
-            let text = prob.map(([name, probability]) => {
-                probability = Math.round(probability * 100);
-                name = name.split("").map(c => c == "_" ? " " : c).join("");
-                return `<p> <span class="result-name">${name}</span>: <b>${probability}%</b> </p>`
-            }).join("\n");
-            resultContent.innerHTML =
-                prob.length > 0 ?
-                `<p> You are: </p>` + text :
-                `<p> We don't know you <span class="result-name">:-(</span> </p>`;
-            resultContent.innerHTML += `<button class="result-button"> OK </button>`;
-
-            result.style.display = "flex";
-            const resultButton = document.getElementsByClassName("result-button")[0];
-            resultButton.addEventListener("click", clearResult)
-    };
+    let name = "";
 
     const clearResult = () => {
         result.style.display = "none";
@@ -308,7 +313,7 @@
         ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
         let image = canvas.toDataURL();
 
-        fetch("/eigenfaces/detect/data", {"method": "POST", "body": image})
+        fetch("/eigenfaces/save/" + name, {"method": "POST", "body": image})
             .then((res) => res.json())
             .then((res) => { showResult(res); })
             .catch((error) => { clearResult(); });
@@ -336,21 +341,23 @@
     setDeviceIndex();
     rotateButton.addEventListener("click", () => setDeviceIndex());
 
-
     const uploadFile = () => {
-        fetch("/eigenfaces/detect/data", {"method": "POST", "body": currentFile})
+        fetch("/eigenfaces/save/" + name, {"method": "POST", "body": currentFile})
             .then((res) => res.json())
             .then((res) => { showResult(res); })
             .catch((error) => { clearResult(); });
     };
 
-
     button.addEventListener("click", (e) => {
+        if (!name) alert("No name!");
+
         if (currentFile) {
             uploadFile();
         } else {
             uploadCamera();
         }
+
+        clearResult();
     });
 
     uploadButton.addEventListener("click", () => {
@@ -372,6 +379,10 @@
         reader.readAsDataURL(file);
 
         fileChoose.value = "";
+    });
+
+    name_input.addEventListener("change", (e) => {
+        name = e.target.value;
     });
 
 </script>
