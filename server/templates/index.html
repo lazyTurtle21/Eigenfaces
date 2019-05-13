@@ -44,6 +44,60 @@
 
             border-radius: 20px 20px 0 0;
         }
+
+        .main {
+            position: relative;
+            display: flex;
+        }
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+        .upload-button {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+
+            color: #7E685A;
+            background-color: white; /*#7E685A;*/
+
+            outline: none;
+            height: 30px;
+            font-weight: 800;
+            font-size: 18px;
+            padding: 0 20px;
+
+            border-radius: 20px;
+            border: none;
+
+            cursor: pointer;
+            transition: 0.3s;
+        }
+        .upload-button:hover {
+            color: #E77179;
+        }
+        .detect-button:active {
+            background-color: #e6a1a6;
+        }
+        .image-container {
+            display: none;
+
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #FFF;
+            justify-content: center;
+            align-items: center;
+        }
+        .image {
+            object-fit: contain;
+            max-width: 100%;
+            max-height: 100%;
+        }
+
         .bottom {
             height: 60px;
             margin: 0;
@@ -162,20 +216,24 @@
 <body>
     <div class="container">
         <h1 class="title"> Eigenfaces </h1>
-        <video id="player" autoplay></video>
+        <div class="main">
+            <video id="player" autoplay></video>
+            <canvas id="canvas"></canvas>
+            <div class="image-container">
+                <img class="image" src="">
+            </div>
+            <button class="upload-button"> Upload </button>
+        </div>
         <div class="bottom">
             <button class="detect-button"> Detect </button>
-            <button class="button "
         </div>
         <div class="result">
             <h2 class="result-title"> Result </h2>
-            <div class="result-main">
-            </div>
+            <div class="result-main"></div>
         </div>
     </div>
     <div class="invisible">
         <input type="file" id="file-choose">
-        <canvas id="canvas"></canvas>
     </div>
 <script>
     const player = document.getElementById('player');
@@ -184,8 +242,64 @@
     const resultContent = document.getElementsByClassName("result-main")[0];
     const result = document.getElementsByClassName("result")[0];
 
+    const uploadButton = document.getElementsByClassName("upload-button")[0];
+    const fileChoose = document.getElementById("file-choose");
+
     const canvas = document.getElementById("canvas");
     const ctx = canvas.getContext("2d");
+
+    const imageContainer = document.getElementsByClassName("image-container")[0];
+    const image = document.getElementsByClassName("image")[0];
+
+    let currentFile = null;
+
+    const showResult = (res) => {
+        let prob = res.probabilities;
+            prob = prob.filter((x, i) => i < 6);
+
+            let text = prob.map(([name, probability]) => {
+                probability = Math.round(probability * 100);
+                name = name.split("").map(c => c == "_" ? " " : c).join("");
+                return `<p> <span class="result-name">${name}</span>: <b>${probability}%</b> </p>`
+            }).join("\n");
+            resultContent.innerHTML =
+                prob.length > 0 ?
+                `<p> You are: </p>` + text :
+                `<p> We don't know you <span class="result-name">:-(</span> </p>`;
+            resultContent.innerHTML += `<button class="result-button"> OK </button>`;
+
+            result.style.display = "flex";
+            const resultButton = document.getElementsByClassName("result-button")[0];
+            resultButton.addEventListener("click", clearResult)
+    };
+
+    const clearResult = () => {
+        result.style.display = "none";
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        imageContainer.style.display = "none";
+        currentFile = null;
+    };
+
+    const uploadCamera = () => {
+        canvas.width = player.clientWidth;
+        canvas.height = player.clientHeight;
+
+        ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
+        let image = canvas.toDataURL();
+
+        fetch("/eigenfaces/detect/data", {"method": "POST", "body": image})
+            .then((res) => res.json())
+            .then((res) => { showResult(res); })
+            .catch((error) => { clearResult(); });
+    };
+
+    const uploadFile = () => {
+        fetch("/eigenfaces/detect/data", {"method": "POST", "body": currentFile})
+            .then((res) => res.json())
+            .then((res) => { showResult(res); })
+            .catch((error) => { clearResult(); });
+    };
+
 
     navigator.mediaDevices.getUserMedia(constraints)
         .then((stream) => {
@@ -193,35 +307,32 @@
         });
 
     button.addEventListener("click", (e) => {
-        canvas.width = player.clientWidth;
-        canvas.height = player.clientHeight;
+        if (currentFile) {
+            uploadFile();
+        } else {
+            uploadCamera();
+        }
+    });
 
+    uploadButton.addEventListener("click", () => {
+        fileChoose.click();
+    });
 
-        ctx.drawImage(player, 0, 0, canvas.width, canvas.height);
+    fileChoose.addEventListener("change", (ev) => {
+        let file = fileChoose.files[0];
 
-        let image = canvas.toDataURL();
+        let reader = new FileReader();
+        reader.onload = function (e) {
+            let url = e.target.result;
+            currentFile = url;
 
-        fetch("/eigenfaces/detect/data", {"method": "POST", "body": image})
-            .then((res) => res.json())
-            .then((res) => {
-                let prob = res.probabilities;
-                prob = prob.filter((x, i) => i < 6);
+            image.setAttribute("src", url);
+            imageContainer.style.display = "flex";
+        };
 
-                let text = prob.map(([name, probability]) => {
-                    probability = Math.round(probability * 100);
-                    name = name.split("").map(c => c == "_" ? " " : c).join("");
-                    return `<p> <span class="result-name">${name}</span>: <b>${probability}%</b> </p>`
-                }).join("\n");
-                resultContent.innerHTML =
-                    prob.length > 0 ?
-                    `<p> You are: </p>` + text :
-                    `<p> We don't know you <span class="result-name">:-(</span> </p>`;
-                resultContent.innerHTML += `<button class="result-button"> OK </button>`;
+        reader.readAsDataURL(file);
 
-                result.style.display = "flex";
-                const resultButton = document.getElementsByClassName("result-button")[0];
-                resultButton.addEventListener("click", () => { result.style.display = "none" })
-            });
+        fileChoose.value = "";
     });
 
 </script>

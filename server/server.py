@@ -1,4 +1,5 @@
 import base64
+import re
 from flask import Flask, Blueprint, \
     jsonify, request, render_template, redirect
 from time import time as timestamp
@@ -21,29 +22,24 @@ def landing():
 def create_filename(format="jpg"):
     id = int(timestamp() * 1e6)
     filename = "{}/{}.{}".format(UPLOAD_FOLDER, id, format)
-
-
-@blueprint.route("/detect/file", methods=["POST"])
-def reconginze_file():
-    if 'file' not in request.files:
-        return jsonify('"error": "No file attached"'), 422
-
-    file = request.files['file']
-    format = file.filename.split(".")[-1]
-    filename = create_filename(format)
-
-    file.save(filename)
-
-    probs = detect_face(filename)
-    return jsonify({"probabilities": probs}), 200
+    return filename
 
 
 @blueprint.route("/detect/data", methods=["POST"])
 def recognize_image():
-    # omit "data:image/png;base64,"
-    image = request.data.split(b",")[1]
+    # request body example: "data:image/png;base64,"
 
-    filename = create_filename()
+    data = request.data
+
+    matcher = re.search(b"^data:image/([^;]*);base64,(.*)$", data)
+
+    if not matcher:
+        return jsonify({"probabilities": [], "error": "Invalid format"}), 422
+
+    format = matcher.group(1)
+    image = matcher.group(2)
+
+    filename = create_filename(format.decode('ascii'))
     # also String IO can be used to load image
     with open(filename, "wb") as file:
         file.write(base64.decodebytes(image + b'=' * (-len(image) % 4)))
@@ -69,5 +65,5 @@ app.register_blueprint(blueprint, url_prefix="/eigenfaces")
 
 
 if __name__ == '__main__':
-    app.run(debug=True)
+    app.run(debug=True, port=3000)
 
