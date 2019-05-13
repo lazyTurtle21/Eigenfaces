@@ -4,6 +4,8 @@ from flask import Flask, Blueprint, \
 from time import time as timestamp
 from processing import Image, Eigenfaces
 
+UPLOAD_FOLDER = "./images"
+
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
@@ -16,14 +18,32 @@ def landing():
     return render_template("index.html")
 
 
-@blueprint.route("/detect", methods=["POST"])
+def create_filename(format="jpg"):
+    id = int(timestamp() * 1e6)
+    filename = "{}/{}.{}".format(UPLOAD_FOLDER, id, format)
+
+
+@blueprint.route("/detect/file", methods=["POST"])
+def reconginze_file():
+    if 'file' not in request.files:
+        return jsonify('"error": "No file attached"'), 422
+
+    file = request.files['file']
+    format = file.filename.split(".")[-1]
+    filename = create_filename(format)
+
+    file.save(filename)
+
+    probs = detect_face(filename)
+    return jsonify({"probabilities": probs}), 200
+
+
+@blueprint.route("/detect/data", methods=["POST"])
 def recognize_image():
+    # omit "data:image/png;base64,"
     image = request.data.split(b",")[1]
 
-    # omit "data:image/png;base64,"
-    id = int(timestamp() * 1e6)
-    filename = "./images/{}.{}".format(id, "jpg")
-
+    filename = create_filename()
     # also String IO can be used to load image
     with open(filename, "wb") as file:
         file.write(base64.decodebytes(image + b'=' * (-len(image) % 4)))

@@ -165,6 +165,7 @@
         <video id="player" autoplay></video>
         <div class="bottom">
             <button class="detect-button"> Detect </button>
+            <button class="button "
         </div>
         <div class="result">
             <h2 class="result-title"> Result </h2>
@@ -173,6 +174,7 @@
         </div>
     </div>
     <div class="invisible">
+        <input type="file" id="file-choose">
         <canvas id="canvas"></canvas>
     </div>
 <script>
@@ -199,7 +201,7 @@
 
         let image = canvas.toDataURL();
 
-        fetch("/eigenfaces/detect", {"method": "POST", "body": image})
+        fetch("/eigenfaces/detect/data", {"method": "POST", "body": image})
             .then((res) => res.json())
             .then((res) => {
                 let prob = res.probabilities;
@@ -210,9 +212,11 @@
                     name = name.split("").map(c => c == "_" ? " " : c).join("");
                     return `<p> <span class="result-name">${name}</span>: <b>${probability}%</b> </p>`
                 }).join("\n");
-
                 resultContent.innerHTML =
-                    "<p> You are: </p>" + text + `<button class="result-button"> OK </button>`;
+                    prob.length > 0 ?
+                    `<p> You are: </p>` + text :
+                    `<p> We don't know you <span class="result-name">:-(</span> </p>`;
+                resultContent.innerHTML += `<button class="result-button"> OK </button>`;
 
                 result.style.display = "flex";
                 const resultButton = document.getElementsByClassName("result-button")[0];
