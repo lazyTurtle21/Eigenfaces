@@ -345,11 +345,20 @@
     };
 
 
-    button.addEventListener("click", (e) => {
+    const upload = () => {
         if (currentFile) {
             uploadFile();
         } else {
             uploadCamera();
+        }
+
+        clearResult();
+    };
+
+    button.addEventListener("click", upload);
+    document.addEventListener("keypress", (e) => {
+        if (e.key === " ") {
+            upload();
         }
     });
 

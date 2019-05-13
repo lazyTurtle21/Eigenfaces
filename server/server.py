@@ -78,7 +78,7 @@ def detect_face(filename):
     if image is None:
         return []
 
-    Image.show_image(image)
+    # Image.show_image(image)
     probs = eigen.recognize(image.flatten(), "norm")
 
     return probs

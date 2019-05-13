@@ -348,7 +348,7 @@
             .catch((error) => { clearResult(); });
     };
 
-    button.addEventListener("click", (e) => {
+    const upload = () => {
         if (!name) alert("No name!");
 
         if (currentFile) {
@@ -358,6 +358,13 @@
         }
 
         clearResult();
+    };
+
+    button.addEventListener("click", upload);
+    document.addEventListener("keypress", (e) => {
+        if (e.key === " ") {
+            upload();
+        }
     });
 
     uploadButton.addEventListener("click", () => {
