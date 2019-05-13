@@ -2,18 +2,18 @@ import base64
 import re
 import os
 from flask import Flask, Blueprint, \
-    jsonify, request, render_template, redirect
+    jsonify, request, render_template, redirect, url_for
 from time import time as timestamp
 from processing import Image, Eigenfaces
 
 UPLOAD_FOLDER = "./images"
-DATASET_FOLDER = "../Dataset"
+DATASET_FOLDER = "../apps_faces"
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 blueprint = Blueprint("eigenfaces", __name__)
-eigen = Eigenfaces("../normalized_apps")
+eigen = Eigenfaces("../normalized_apps", 0.85)
 
 
 @blueprint.route("/")

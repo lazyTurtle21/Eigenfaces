@@ -15,11 +15,9 @@ def test_person(eigen, file):
     return name == file.split("/")[0]
 
 
-def test_accuracy(eigen):
+def get_image_paths():
+    paths = []
     import os
-
-    true_values = 0
-    all_values = 0
 
     for person_directory in os.listdir(FOLDER):
         path = FOLDER + "/" + person_directory
@@ -28,14 +26,58 @@ def test_accuracy(eigen):
             for image in os.listdir(path):
                 image_path = path + "/" + image
 
-                image = Image.read_image(image_path)
-                result = eigen.recognize(image)
+                paths.append((image_path, person_directory))
 
-                all_values += 1
-                if len(result) > 0 and result[0][0] == person_directory:
-                    true_values += 1
+    return paths
 
-    print("Recognized: %d / %d (%f%%)" %
+
+def test_accuracy_good():
+    import random
+    import os
+
+    test_frac = 0.10
+
+    paths = get_image_paths()
+    true_values = 0
+
+    random.shuffle(paths)
+    test_paths = paths[:int(len(paths) * test_frac)]
+    images = []
+
+    for test_path, name in test_paths:
+        images.append(Image.read_image_2d(test_path))
+        os.remove(test_path)
+
+    eigen = Eigenfaces(FOLDER)
+    for i in range(len(test_paths)):
+        result = eigen.recognize(images[i].flatten())
+        result = result[0][0] if len(result) > 0 else None
+
+        if result == test_paths[i][1]:
+            true_values += 1
+
+    for i in range(len(images)):
+        Image.save_image(images[i], test_paths[i][0])
+
+    print("[Eigenfaces] Real accuracy: %d / %d (%d%%)" %
+          (true_values, len(test_paths), true_values / len(test_paths) * 100))
+
+    return true_values / len(test_paths)
+
+
+def test_accuracy(eigen):
+    true_values = 0
+    all_values = 0
+
+    for image_path, name in get_image_paths():
+        image = Image.read_image(image_path)
+        result = eigen.recognize(image)
+
+        all_values += 1
+        if len(result) > 0 and result[0][0] == name:
+            true_values += 1
+
+    print("[Eigenfaces] Accuracy: %d / %d (%f%%)" %
           (true_values, all_values, true_values / all_values * 100))
 
 
@@ -48,15 +90,22 @@ def test_apps():
     # recognizing procedure
     # test_person(eigen, "Veronika_Romanko/4.jpg")
     # test_person(eigen, "Yulianna_Tymchenko/7.jpg")
-    test_person(eigen, "Mariia_Kulyk/4.jpg")
-    test_person(eigen, "Andriy_Dmytruk/4.jpg")
-    test_person(eigen, "Andriy_Dmytruk_New/1557603255750815.png")
+    # test_person(eigen, "Mariia_Kulyk/4.jpg")
+    # test_person(eigen, "Andriy_Dmytruk/4.jpg")
+    # test_person(eigen, "Andriy_Dmytruk_New/1557603255750815.png")
 
     test_accuracy(eigen)
 
+    accuracy = 0
+    num = 10
+    for i in range(num):
+        accuracy += test_accuracy_good()
+
+    print("[Eigenfaces] Average real accuracy: %f%%" % (accuracy / num * 100))
+
 
 def normalize_images(max=100):
-    dir_from = "./resized_apps"
+    dir_from = "./apps_faces"
     dir_to = "./normalized_apps"
 
     omit = ["Oleksandr_Sysonov", "Mykola_Biliaev"]
@@ -101,5 +150,5 @@ if __name__ == "__main__":
     # test_detection("resized_apps/Andriy_Dmytruk_New/1557603255750815.png")
     # test_detection("resized_apps/Andriy_Dmytruk/1.jpg")
 
-    # normalize_images(10)
+    normalize_images()
     test_apps()

@@ -16,7 +16,9 @@ class Eigenfaces:
 
         self.create_reduced_basis()
         self.dataset.calculate_weights(self.calculate_weight)
-        # Image.show_image(self.reverse_image(self.dataset.persons[0].class_weight))
+
+        # for person in self.dataset.persons:
+        #     Image.show_image(self.reverse_image(person.class_weight), person.name)
 
     @staticmethod
     def get_average(images):

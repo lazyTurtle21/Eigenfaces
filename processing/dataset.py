@@ -28,29 +28,34 @@ class Dataset:
         self.persons = np.array(persons)
         self.all_images = np.array(all_images)
 
-        print("Images loaded", self.all_images.shape[0])
+        print("[Eigenfaces] Images loaded", self.all_images.shape[0])
 
     def calculate_weights(self, weight_func):
         for person in self.persons:
             person.weights = np.apply_along_axis(weight_func, 1, person.images)
-            person.class_weight = np.apply_along_axis(np.mean, 0, person.weights)
+            person.class_weight = np.apply_along_axis(np.mean, 0,
+                                                      person.weights)
 
     def __recognize_with_probabilities__(self, probabilities):
-        # probabilities are probabilities for each person in the order of self.persons
+        # probabilities for each person in the order of self.persons
 
-        indexes = np.flip(np.argsort(probabilities))
+        indexes = np.flip(np.argsort(probabilities), 0)
 
-        # filter the largest probabilites
-        indexes = [*filter(lambda i: 4 * probabilities[i] > probabilities[indexes[0]], indexes)]
+        # filter the largest probabilities
+        indexes = [*filter(lambda i: 4 * probabilities[i] >
+                           probabilities[indexes[0]], indexes)]
 
         # return (name: probability) pairs to user
-        return [*map(lambda i: (self.persons[i].name, probabilities[i]), indexes)]
+        return [*map(lambda i: (self.persons[i].name, probabilities[i]),
+                     indexes)]
 
     def initialize_norm(self):
         distances = []
 
         for person in self.persons:
-            person_distances = np.apply_along_axis(np.linalg.norm, 1, person.class_weight - person.weights)
+            person_distances = np.apply_along_axis(np.linalg.norm, 1,
+                                                   person.class_weight
+                                                   - person.weights)
             distances.extend(person_distances)
 
         distances = np.array(distances)
@@ -72,13 +77,13 @@ class Dataset:
 
     def recognize_dist(self, weight):
         # recognize by the distances fraction
-        distances_inv = np.array([*map(lambda x: 1 / x.distance(weight), self.persons)])
+        distances_inv = np.array([*map(lambda x: 1 / x.distance(weight),
+                                       self.persons)])
         distance_isum = np.sum(distances_inv)
 
         probabilities = distances_inv / distance_isum
 
         return self.__recognize_with_probabilities__(probabilities)
-
 
     def __iter__(self):
         for person in self.persons:

@@ -100,14 +100,13 @@ class Image:
                            interpolation=cv2.INTER_CUBIC)
 
         image = Image.histogram_equalization(image)
-        image = Image.gamma_correct(image, 2)
+        image = Image.gamma_correct(image, 1.8)
+
 
         # image = Image.dog_correction(image, 8, 1)
 
-        # g_kernel = cv2.getGaborKernel((5, 8), 2 * np.pi, np.pi / 2, 9.8, 5 ** 2, 0, ktype=cv2.CV_32F)
-        # image = cv2.filter2D(image, cv2.CV_8UC3, g_kernel)
-
-        image = Image.gamma_correct(image, 2)
+        g_kernel = cv2.getGaborKernel((5, 8), 2 * np.pi, np.pi / 2, 9.8, 5 ** 2, 0, ktype=cv2.CV_32F)
+        image = cv2.filter2D(image, cv2.CV_8UC3, g_kernel)
 
         # image = Image.cut_oval(image)
 
@@ -200,22 +199,17 @@ class Image:
         return image
 
     @classmethod
-    def normalize_image(self, image):
-        image = image.astype("float")
-
-
-
-    @classmethod
     def save_image(cls, image, path):
         mpimage.imsave(path, image, cmap=plt.get_cmap("gray"))
 
     @classmethod
-    def show_image(cls, image):
+    def show_image(cls, image, title=""):
         # get original shape
         if len(image.shape) == 1:
             image = np.reshape(image, cls.get_image_shape(image))
 
         # display the image
+        plt.title(title)
         plt.imshow(image, interpolation='nearest', cmap=plt.get_cmap("gray"))
         plt.show()
 

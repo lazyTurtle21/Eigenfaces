@@ -29,3 +29,5 @@ class Person:
     def distance(self, other_weight):
         return np.linalg.norm(self.class_weight - other_weight)
 
+    def distances(self, other_weight):
+        return [*map(lambda w: self.distance(other_weight), self.weights)]
