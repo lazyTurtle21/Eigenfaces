@@ -1,5 +1,5 @@
 .idea/
 __pycache__/
 server/images/
-normalized_apps/
+# normalized_apps/
 apps_faces/

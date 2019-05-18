@@ -1,11 +1,10 @@
 from processing import Eigenfaces, Image
-import cv2
-
-FOLDER = "./normalized_apps"
+import os
+import sys
 
 
 def test_person(eigen, file):
-    probs = eigen.recognize(Image.read_image(FOLDER + "/" + file))
+    probs = eigen.recognize(Image.read_image(file))
     name = max(probs, key=lambda x: x[1], default=["Failed"])[0]
     print("Detecting %s:" % file)
     print("\tMax:", name)
@@ -15,140 +14,80 @@ def test_person(eigen, file):
     return name == file.split("/")[0]
 
 
-def get_image_paths():
-    paths = []
-    import os
+def test_detection_procedure(eigen, file):
+    # Tests detection and save partial results
+    image = Image.detect_face(file)
+    image = image.flatten()
 
-    for person_directory in os.listdir(FOLDER):
-        path = FOLDER + "/" + person_directory
+    if not os.path.exists("./detection_procedure/"):
+        os.makedirs("./detection_procedure/")
 
-        if os.path.isdir(path):
-            for image in os.listdir(path):
-                image_path = path + "/" + image
+    Image.save_image(eigen.average, "./detection_procedure/average.jpg")
+    Image.save_image(image - eigen.average,
+                     "./detection_procedure/subtracted.jpg")
+    Image.save_image(eigen.reverse_image(eigen.calculate_weight(image))
+                     - eigen.average,
+                     "./detection_procedure/reduced-subtracted.jpg")
+    Image.save_image(eigen.reverse_image(eigen.calculate_weight(image)),
+                     "./detection_procedure/reduced.jpg")
 
-                paths.append((image_path, person_directory))
-
-    return paths
-
-
-def test_accuracy_good():
-    import random
-    import os
-
-    test_frac = 0.10
-
-    paths = get_image_paths()
-    true_values = 0
-
-    random.shuffle(paths)
-    test_paths = paths[:int(len(paths) * test_frac)]
-    images = []
-
-    for test_path, name in test_paths:
-        images.append(Image.read_image_2d(test_path))
-        os.remove(test_path)
-
-    eigen = Eigenfaces(FOLDER)
-    for i in range(len(test_paths)):
-        result = eigen.recognize(images[i].flatten())
-        result = result[0][0] if len(result) > 0 else None
-
-        if result == test_paths[i][1]:
-            true_values += 1
-
-    for i in range(len(images)):
-        Image.save_image(images[i], test_paths[i][0])
-
-    print("[Eigenfaces] Real accuracy: %d / %d (%d%%)" %
-          (true_values, len(test_paths), true_values / len(test_paths) * 100))
-
-    return true_values / len(test_paths)
-
-
-def test_accuracy(eigen):
-    true_values = 0
-    all_values = 0
-
-    for image_path, name in get_image_paths():
-        image = Image.read_image(image_path)
-        result = eigen.recognize(image)
-
-        all_values += 1
-        if len(result) > 0 and result[0][0] == name:
-            true_values += 1
-
-    print("[Eigenfaces] Accuracy: %d / %d (%f%%)" %
-          (true_values, all_values, true_values / all_values * 100))
-
-
-def test_apps():
-    # load images
-    eigen = Eigenfaces(FOLDER)
-
-    recognize_func = "norm"
-
-    # recognizing procedure
-    # test_person(eigen, "Veronika_Romanko/4.jpg")
-    # test_person(eigen, "Yulianna_Tymchenko/7.jpg")
-    # test_person(eigen, "Mariia_Kulyk/4.jpg")
-    # test_person(eigen, "Andriy_Dmytruk/4.jpg")
-    # test_person(eigen, "Andriy_Dmytruk_New/1557603255750815.png")
-
-    test_accuracy(eigen)
-
-    accuracy = 0
-    num = 10
-    for i in range(num):
-        accuracy += test_accuracy_good()
-
-    print("[Eigenfaces] Average real accuracy: %f%%" % (accuracy / num * 100))
-
-
-def normalize_images(max=100):
-    dir_from = "./apps_faces"
-    dir_to = "./normalized_apps"
-
-    omit = ["Oleksandr_Sysonov", "Mykola_Biliaev"]
-
-    import os
-
-    all_people = os.listdir(dir_from)
-    all_people = [*filter(lambda x: x not in omit, all_people)][:max]
-
-    for i in range(len(all_people)):
-        person_directory = all_people[i]
-        print("[Eigenfaces] Normalizing person %d / %d" % (i + 1, len(all_people)))
-
-        path_from = dir_from + "/" + person_directory
-        path_to = dir_to + "/" + person_directory
-
-        if not os.path.isdir(path_to):
-            os.makedirs(path_to)
-
-        if os.path.isdir(path_from):
-            for image in os.listdir(path_from):
-                image_from = path_from + "/" + image
-                image_to = path_to + "/" + image
-
-                if os.path.exists(image_to):
-                    os.remove(image_to)
-
-                image = Image.find_face(image_from)
-                if image is not None:
-                    Image.save_image(image, image_to)
-
-    # end :-)
-
-
-def test_detection(file):
-    image = Image.find_face(file)
-    print(image)
     Image.show_image(image)
 
 
-if __name__ == "__main__":
-    # test_detection("resized_apps/Andriy_Dmytruk_New/1557603255750815.png")
-    # test_detection("resized_apps/Andriy_Dmytruk/1.jpg")
+def save_eigenfaces(eigen):
+    # Saves the eigenfaces to a folder
+    if not os.path.exists("./eigenfaces/"):
+        os.makedirs("./eigenfaces")
 
-    normalize_images()
-    test_apps()
+    for i in range(eigen.vectors.shape[1]):
+        vector = eigen.vectors[:,i]
+        vector *= 1 / max(vector)
+        Image.save_image(vector + eigen.average, "./eigenvectors/" + str(i))
+
+
+def playground(folder):
+    eigen = Eigenfaces(folder)
+
+    # EXAMPLES:
+    # NOTE: parameters may change
+    save_eigenfaces(eigen)
+    test_person(eigen, folder + "/Andriy_Dmytruk/1.jpg")
+    test_detection_procedure(eigen, folder + "/Andriy_Dmytruk/1.jpg")
+
+
+if __name__ == "__main__":
+    folder = "./normalized_apps"
+
+    if len(sys.argv) > 1:
+        com = sys.argv[1]
+
+        if com == "server":
+            dataset = "./apps_faces/"
+
+            if len(sys.argv) > 2:
+                folder = sys.argv[2]
+            if len(sys.argv) > 3:
+                dataset = sys.argv[3]
+
+            from server import *
+            initialize_server(folder, dataset)
+            run_server()
+        elif com == "detect":
+            if len(sys.argv) > 2:
+                name = sys.argv[2]
+            else:
+                raise Exception("Second parameter should be name")
+
+            if len(sys.argv) > 3:
+                folder = sys.argv[3]
+
+            eigen = Eigenfaces(folder)
+            test_person(eigen, sys.argv[2])
+        elif com == "help":
+            print("Available commands are: \n\thelp \n\tserver \n\ttest file_path [folder]")
+        else:
+            raise Exception("Invalid command. Available: help, serer, test")
+
+    else:
+        playground(folder)
+

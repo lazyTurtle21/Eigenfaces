@@ -6,14 +6,24 @@ from flask import Flask, Blueprint, \
 from time import time as timestamp
 from processing import Image, Eigenfaces
 
-UPLOAD_FOLDER = "./images"
-DATASET_FOLDER = "../apps_faces"
+
+SERVER_FOLDER = os.path.dirname(os.path.abspath(__file__))
+UPLOAD_FOLDER = os.path.join(SERVER_FOLDER, "images")
+DATASET_FOLDER = os.path.join(SERVER_FOLDER, "../apps_faces")
+EIGENFACES_FOLDER = os.path.join(SERVER_FOLDER, "../normalized_apps")
+
+print(UPLOAD_FOLDER)
+
+def initialize(eigenfaces_folder=None, dataset_folder=None):
+    global eigen, DATASET_FOLDER
+    eigen = Eigenfaces(eigenfaces_folder or EIGENFACES_FOLDER)
+    DATASET_FOLDER = dataset_folder or DATASET_FOLDER
+
 
 app = Flask(__name__)
 app.url_map.strict_slashes = False
 
 blueprint = Blueprint("eigenfaces", __name__)
-eigen = Eigenfaces("../normalized_apps", 0.85)
 
 
 @blueprint.route("/")
@@ -74,7 +84,7 @@ def save_image(name):
 
 def detect_face(filename):
     """ Function takes file path and returns name """
-    image = Image.find_face(filename)
+    image = Image.detect_face(filename)
     if image is None:
         return []
 
@@ -89,5 +99,6 @@ app.register_blueprint(blueprint, url_prefix="/eigenfaces")
 
 
 if __name__ == '__main__':
+    initialize()
     app.run(debug=True, port=4000)
 
