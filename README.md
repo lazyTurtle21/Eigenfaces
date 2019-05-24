@@ -10,7 +10,7 @@ To run the local server with face recognition, you need to start:
 ```shell
 python main.py server [FOLDER] [DATASET_FOLDER]
 ```
-This will start the server at [localhost:3000](http://localhost:3000/). The parameter
+This will start the server at [localhost:4000](http://localhost:4000/). The parameter
 folder is not required and needs to have the path to a dataset of normalized people
 photos.  
 This will train the algorithm on dataset and will be ready to recognize.  
@@ -18,7 +18,7 @@ This will train the algorithm on dataset and will be ready to recognize.
 Website supports taking photos online, uploading photos stored locally and switching camera.  
 Website can also be used to **collect the dataset**. The second parameter `[DATASET_FOLDER]` is the folder 
 where all dataset photos will be saved. The endpoint
-[localhost:3000/eigenfaces/save](http://localhost:3000/eigenfaces/save) helps
+[localhost:4000/eigenfaces/save](http://localhost:4000/eigenfaces/save) helps
 you easily take the photos and automatically save them to dataset.
 
 ##### Dataset & Normalization
